@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 
 interface HealthBarProps {
@@ -14,7 +13,7 @@ const HealthBar: React.FC<HealthBarProps> = ({ health }) => {
         <div className="w-full">
             <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-bold text-gray-300">سلامتی</span>
-                <span className="text-sm font-bold text-white tabular-nums">{health} / 100</span>
+                <span className="text-sm font-title text-white font-semibold tabular-nums">{health} / 100</span>
             </div>
             <div
                 className="w-full bg-gray-900/50 rounded-full h-3 border border-gray-700"

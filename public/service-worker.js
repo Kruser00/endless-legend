@@ -34,7 +34,7 @@ self.addEventListener('activate', event => {
 
 // Fetch: Use stale-while-revalidate for navigation requests
 self.addEventListener('fetch', event => {
-  // We only want to apply this strategy to navigation requests (i.e., for the HTML page)
+  // Apply to navigation requests (i.e., for the HTML page)
   if (event.request.mode === 'navigate') {
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
@@ -42,11 +42,13 @@ self.addEventListener('fetch', event => {
         return cache.match(event.request).then(cachedResponse => {
           // 2. Fetch from network to revalidate (and update cache)
           const fetchPromise = fetch(event.request).then(networkResponse => {
-            // Check if we received a valid response
             if (networkResponse && networkResponse.status === 200) {
               cache.put(event.request, networkResponse.clone());
             }
             return networkResponse;
+          }).catch(err => {
+            console.error('Service Worker: Fetch failed; returning offline page instead.', err);
+            return cachedResponse; // If fetch fails, return cached response
           });
 
           // Return cached response immediately if available, otherwise wait for network
@@ -54,15 +56,13 @@ self.addEventListener('fetch', event => {
         });
       })
     );
-  } else if (APP_SHELL_URLS.includes(new URL(event.request.url).pathname)) {
+  } else if (APP_SHELL_URLS.some(url => event.request.url.endsWith(url))) {
     // For other app shell assets, use a cache-first strategy
     event.respondWith(
       caches.match(event.request).then(response => {
         return response || fetch(event.request);
       })
     );
-  } else {
-    // For all other requests (API calls, images, etc.), just fetch from the network.
-    return;
   }
+  // For all other requests (API calls, Vite assets), do nothing and let the browser handle it.
 });

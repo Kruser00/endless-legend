@@ -94,7 +94,6 @@ export const generateImage = async (prompt: string): Promise<string> => {
             },
         });
 
-        // Safely access nested properties to prevent runtime errors and fix the TypeScript error.
         const image = response.generatedImages?.[0];
         if (image?.image?.imageBytes) {
             const base64ImageBytes: string = image.image.imageBytes;
