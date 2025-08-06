@@ -2,12 +2,12 @@ import { GoogleGenAI } from "@google/genai";
 import type { GameState } from '../types';
 import { GAME_SYSTEM_INSTRUCTION, INITIAL_GAME_PROMPT, GAME_STATE_SCHEMA } from '../constants';
 
-const API_KEY = import.meta.env.VITE_API_KEY;
-if (!API_KEY) {
-    throw new Error("VITE_API_KEY environment variable not set. Please create a .env file in the root directory and add VITE_API_KEY=YOUR_API_KEY.");
+// Use process.env.API_KEY as per guidelines. The build environment (e.g., Vercel) will provide this.
+if (!process.env.API_KEY) {
+    throw new Error("API_KEY environment variable not set.");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 function parseOrThrow(jsonString: string): GameState {
     let cleanedString = jsonString.trim();
@@ -91,8 +91,10 @@ export const generateImage = async (prompt: string): Promise<string> => {
             },
         });
 
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+        // Safely access nested properties to prevent runtime errors and fix the TypeScript error.
+        const image = response.generatedImages?.[0];
+        if (image?.image?.imageBytes) {
+            const base64ImageBytes: string = image.image.imageBytes;
             return `data:image/jpeg;base64,${base64ImageBytes}`;
         }
         throw new Error("هوش مصنوعی تصویری برنگرداند.");
