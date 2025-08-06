@@ -94,11 +94,14 @@ export const generateImage = async (prompt: string): Promise<string> => {
             },
         });
 
+        // Safely access the image data to prevent crashes if the API returns no image.
         const image = response.generatedImages?.[0];
         if (image?.image?.imageBytes) {
             const base64ImageBytes: string = image.image.imageBytes;
             return `data:image/jpeg;base64,${base64ImageBytes}`;
         }
+        
+        // This error is now thrown correctly if no image is returned, e.g. due to safety filters.
         throw new Error("هوش مصنوعی تصویری برنگرداند.");
 
     } catch (error) {
