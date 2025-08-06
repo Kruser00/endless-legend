@@ -2,12 +2,15 @@ import { GoogleGenAI } from "@google/genai";
 import type { GameState } from '../types';
 import { GAME_SYSTEM_INSTRUCTION, INITIAL_GAME_PROMPT, GAME_STATE_SCHEMA } from '../constants';
 
-// Use process.env.API_KEY as per guidelines. The build environment (e.g., Vercel) will provide this.
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set.");
+// In a Vite project, environment variables are exposed on `import.meta.env`.
+// For security, only variables prefixed with `VITE_` are exposed to the client-side code.
+const apiKey = import.meta.env.VITE_API_KEY;
+
+if (!apiKey) {
+    throw new Error("VITE_API_KEY environment variable not set. Make sure to create a .env file or configure it in your deployment environment.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey });
 
 function parseOrThrow(jsonString: string): GameState {
     let cleanedString = jsonString.trim();
