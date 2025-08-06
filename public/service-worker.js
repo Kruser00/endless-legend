@@ -1,27 +1,28 @@
-const CACHE_NAME = 'gemini-rogue-v2';
-const URLS_TO_CACHE = [
+const CACHE_NAME = 'gemini-rogue-v3'; // Incremented version
+const APP_SHELL_URLS = [
   '/',
-  '/index.html',
-  '/manifest.json',
-  'https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap'
+  '/manifest.json'
 ];
 
+// Install: Cache the app shell
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(URLS_TO_CACHE);
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      console.log('Service Worker: Caching App Shell');
+      return cache.addAll(APP_SHELL_URLS);
+    })
   );
 });
 
+// Activate: Clean up old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Service Worker: Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -31,22 +32,37 @@ self.addEventListener('activate', event => {
   return self.clients.claim();
 });
 
+// Fetch: Use stale-while-revalidate for navigation requests
 self.addEventListener('fetch', event => {
-  // Let the browser handle requests for scripts and assets, 
-  // as Vite will handle caching via headers for production builds.
-  // We only serve the main pages from cache for offline support.
-  if (URLS_TO_CACHE.includes(new URL(event.request.url).pathname) || event.request.url.startsWith('https://fonts.googleapis.com')) {
+  // We only want to apply this strategy to navigation requests (i.e., for the HTML page)
+  if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match(event.request)
-        .then(response => {
-          // Cache hit - return response
-          if (response) {
-            return response;
-          }
-          return fetch(event.request);
-        })
+      caches.open(CACHE_NAME).then(cache => {
+        // 1. Serve from cache (stale)
+        return cache.match(event.request).then(cachedResponse => {
+          // 2. Fetch from network to revalidate (and update cache)
+          const fetchPromise = fetch(event.request).then(networkResponse => {
+            // Check if we received a valid response
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          });
+
+          // Return cached response immediately if available, otherwise wait for network
+          return cachedResponse || fetchPromise;
+        });
+      })
+    );
+  } else if (APP_SHELL_URLS.includes(new URL(event.request.url).pathname)) {
+    // For other app shell assets, use a cache-first strategy
+    event.respondWith(
+      caches.match(event.request).then(response => {
+        return response || fetch(event.request);
+      })
     );
   } else {
-     event.respondWith(fetch(event.request));
+    // For all other requests (API calls, images, etc.), just fetch from the network.
+    return;
   }
 });
