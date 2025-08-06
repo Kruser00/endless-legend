@@ -27,15 +27,13 @@ function parseOrThrow(jsonString: string): GameState {
         if (
             parsed &&
             typeof parsed.sceneDescription === 'string' &&
-            typeof parsed.imagePrompt === 'string' &&
             Array.isArray(parsed.actions) &&
             typeof parsed.characterStatus === 'string' &&
             typeof parsed.health === 'number' &&
             Array.isArray(parsed.inventory) &&
             typeof parsed.gameOver === 'boolean' &&
             typeof parsed.gameWon === 'boolean' &&
-            typeof parsed.storyRecap === 'string' &&
-            typeof parsed.generateImage === 'boolean'
+            typeof parsed.storyRecap === 'string'
         ) {
             return parsed as GameState;
         }
@@ -79,33 +77,5 @@ export const generateGameState = async (playerAction: string, previousState?: Ga
     } catch(e) {
         console.error("Original malformed response from AI:", rawText);
         throw e;
-    }
-};
-
-export const generateImage = async (prompt: string): Promise<string> => {
-    try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-3.0-generate-002',
-            prompt: prompt,
-            config: {
-                numberOfImages: 1,
-                outputMimeType: 'image/jpeg',
-                aspectRatio: '16:9',
-            },
-        });
-
-        // Safely access the image data to prevent crashes if the API returns no image.
-        const image = response.generatedImages?.[0];
-        if (image?.image?.imageBytes) {
-            const base64ImageBytes: string = image.image.imageBytes;
-            return `data:image/jpeg;base64,${base64ImageBytes}`;
-        }
-        
-        // This error is now thrown correctly if no image is returned, e.g. due to safety filters.
-        throw new Error("هوش مصنوعی تصویری برنگرداند.");
-
-    } catch (error) {
-        console.error("Failed to generate image:", error);
-        throw new Error("تولید تصویر با شکست مواجه شد. شاید موجودات تاریکی جلوی دید شما را گرفته‌اند.");
     }
 };

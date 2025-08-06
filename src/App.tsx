@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import type { GameState } from './types';
-import { generateGameState, generateImage } from './services/geminiService';
+import { generateGameState } from './services/geminiService';
 import SceneDisplay from './components/SceneDisplay';
 import ActionPanel from './components/ActionPanel';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -9,7 +9,6 @@ import InventoryPanel from './components/InventoryPanel';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -20,7 +19,6 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setGameState(null);
-    setCurrentImage(null);
     setHistory([]);
     setGameStarted(true);
     setIsInventoryOpen(false);
@@ -28,11 +26,6 @@ const App: React.FC = () => {
     try {
       const initialGameState = await generateGameState("START_GAME");
       setGameState(initialGameState);
-      
-      if (initialGameState.generateImage) {
-        const image = await generateImage(initialGameState.imagePrompt);
-        setCurrentImage(image);
-      }
     } catch (err) {
       console.error(err);
       setError("شروع ماجراجویی با شکست مواجه شد. ارواح یاری نمی‌کنند. لطفاً بعداً دوباره تلاش کنید.");
@@ -54,15 +47,6 @@ const App: React.FC = () => {
     try {
       const nextGameState = await generateGameState(action, gameState);
       setGameState(nextGameState);
-
-      if (nextGameState.gameOver || nextGameState.gameWon) {
-        // Keep the last image for the game over screen
-      } else if (nextGameState.generateImage) {
-        setCurrentImage(null); // Clear previous image while new one loads
-        const image = await generateImage(nextGameState.imagePrompt);
-        setCurrentImage(image);
-      }
-      
     } catch (err)
  {
       console.error(err);
@@ -106,11 +90,8 @@ const App: React.FC = () => {
 
     if (gameState) {
       return (
-        <div className="flex flex-col md:flex-row w-full md:h-full md:gap-6 lg:gap-8">
-          <div className="md:w-2/3 md:h-full">
-            <SceneDisplay image={currentImage} description={gameState.sceneDescription} isLoading={isLoading && gameState.generateImage && currentImage === null}/>
-          </div>
-          <div className="md:w-1/3 md:h-full">
+        <div className="w-full h-full flex flex-col gap-4 md:gap-6 p-4">
+            <SceneDisplay description={gameState.sceneDescription} />
             <ActionPanel
               health={gameState.health}
               status={gameState.characterStatus}
@@ -121,7 +102,6 @@ const App: React.FC = () => {
               recap={gameState.storyRecap}
               onToggleInventory={() => setIsInventoryOpen(true)}
             />
-          </div>
         </div>
       );
     }
@@ -147,13 +127,13 @@ const App: React.FC = () => {
   }
 
   return (
-    <main className="min-h-screen w-full bg-gray-900">
+    <main className="min-h-screen w-full bg-gray-900 flex items-center justify-center">
        <InventoryPanel 
         isOpen={isInventoryOpen} 
         onClose={() => setIsInventoryOpen(false)}
         inventory={gameState?.inventory ?? []}
       />
-      <div className="max-w-7xl mx-auto md:h-screen md:p-4 lg:p-8 md:flex md:items-center">
+      <div className="max-w-4xl w-full">
         {renderContent()}
       </div>
     </main>
